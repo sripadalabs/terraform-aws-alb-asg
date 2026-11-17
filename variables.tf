@@ -78,12 +78,37 @@ variable "launch_template_version" {
   }
 }
 
-variable "ec2_instance_size" {
+variable "ec2_instance_type" {
   description = "EC2 instance type used by the launch template, such as t3.micro."
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]*\\.[a-z0-9-]+$", var.ec2_instance_size))
-    error_message = "ec2_instance_size must be an EC2 instance type in the form family.size, such as t3.micro."
+    condition     = can(regex("^[a-z][a-z0-9-]*\\.[a-z0-9-]+$", var.ec2_instance_type))
+    error_message = "ec2_instance_type must be an EC2 instance type in the form family.size, such as t3.micro."
   }
+}
+
+variable app_port {
+  description = "Port on which the application listens."
+  type        = number
+
+  validation {
+    condition     = var.app_port > 0 && var.app_port <= 65535 && floor(var.app_port) == var.app_port
+    error_message = "app_port must be an integer between 1 and 65535."
+  }
+}
+
+variable app_artifact_bucket{
+  description = "Name of the S3 bucket containing the application artifact."
+  type        = string
+}
+
+variable app_artifact_key{
+  description = "Key of the application artifact in the S3 bucket."
+  type        = string
+}
+
+variable app_artifact_version{
+  description = "Version of the application artifact in the S3 bucket."
+  type        = string
 }
