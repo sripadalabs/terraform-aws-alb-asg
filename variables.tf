@@ -88,6 +88,12 @@ variable "ec2_instance_type" {
   }
 }
 
+variable app_name {
+  description = "Name of the application."
+  type        = string
+  default     = "custom-app"
+}
+
 variable app_port {
   description = "Port on which the application listens."
   type        = number
@@ -111,4 +117,34 @@ variable app_artifact_key{
 variable app_artifact_version{
   description = "Version of the application artifact in the S3 bucket."
   type        = string
+}
+
+variable asg_health_check_grace_period{
+  description = "The amount of time, in seconds, that the Auto Scaling Group waits before checking the health status of an instance after it has been launched or restarted."
+  type        = number
+  default     = 300
+  validation {
+    condition     = var.asg_health_check_grace_period >= 0 && floor(var.asg_health_check_grace_period) == var.asg_health_check_grace_period
+    error_message = "health_check_grace_period must be a non-negative integer."
+  }
+}
+
+variable asg_default_cooldown{
+  description = "The amount of time, in seconds, that the Auto Scaling Group waits before allowing another scaling activity to start after a previous scaling activity has completed."
+  type        = number
+  default     = 300
+  validation {
+    condition     = var.asg_default_cooldown >= 0 && floor(var.asg_default_cooldown) == var.asg_default_cooldown
+    error_message = "default_cooldown must be a non-negative integer."
+  }
+}
+
+variable asg_instance_warmup{
+  description = "The amount of time, in seconds, that the Auto Scaling Group waits for an instance to warm up before it can contribute to the desired capacity."
+  type        = number
+  default     = 300
+  validation {
+    condition     = var.asg_instance_warmup >= 0 && floor(var.asg_instance_warmup) == var.asg_instance_warmup
+    error_message = "instance_warmup must be a non-negative integer."
+  }
 }

@@ -1,5 +1,5 @@
 resource "aws_launch_template" "custom_app" {
-  name_prefix   = "custom-app-"
+  name_prefix   = "${var.app_name}-"
   image_id      = var.ami_id
   instance_type = var.ec2_instance_type
   update_default_version = true
@@ -43,7 +43,7 @@ resource "aws_launch_template" "custom_app" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "custom-app-instance"
+      Name = "${var.app_name}-instance"
     }
   }
   
@@ -51,7 +51,7 @@ resource "aws_launch_template" "custom_app" {
   tag_specifications {
     resource_type = "volume"
     tags = {
-      Name = "custom-app-root-volume"
+      Name = "${var.app_name}-root-volume"
     }
   }
 
@@ -63,4 +63,54 @@ resource "aws_launch_template" "custom_app" {
     object_version   = var.app_artifact_version
   })
 )
+}
+
+resource aws_autoscaling_group "custom_app_asg" {
+  #name                      = "${var.app_name}-asg"
+  name_prefix               = "${var.app_name}-asg-"
+  
+  desired_capacity          = var.asg_desired_capacity
+  max_size                  = var.asg_max_size
+  min_size                  = var.asg_min_size
+  target_group_arns          = [aws_lb_target_group.custom_app_tg.arn]
+
+  vpc_zone_identifier       = var.private_subnets
+
+  # allow ASG to terminate instances during scale-in events. Set to true if you want to protect instances from being terminated during scale-in events.
+  # Scale Out -> Add instances / Scale In  -> Remove instances
+  protect_from_scale_in     = false
+  # ASG waits before allowing another scaling policy to execute. 
+  # Otherwise, it can execute multiple scaling policies in a short period of time, which can lead to unexpected behavior.
+  default_cooldown = var.asg_default_cooldown
+  default_instance_warmup = var.asg_instance_warmup
+  metrics_granularity = "1Minute"
+  #capacity_rebalance = false this isuseful for Splot instances. Now much use for on-demand instances.
+  
+  launch_template {
+    id      = aws_launch_template.custom_app.id
+    version = var.launch_template_version
+  }
+  health_check_type         = "ELB" # Why not EC2? Because we want to use the ALB health check, which is more accurate for our application.
+  health_check_grace_period = var.asg_health_check_grace_period
+  max_instance_lifetime       = 0 # It is not used. No default termination of instances based on age. If you want to use it, set it to a positive integer in seconds.
+  
+  instance_refresh {
+    strategy = "Rolling"
+    triggers = ["launch_template"]
+
+    preferences {
+      instance_warmup        = 300
+      min_healthy_percentage = 100
+      max_healthy_percentage = 150
+
+      auto_rollback = true
+      skip_matching = true
+    }
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "${var.app_name}-instance"
+    propagate_at_launch = true # This is important. It ensures that the tag is applied to the instances launched by the ASG.
+  }
 }
