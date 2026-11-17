@@ -148,3 +148,14 @@ variable asg_instance_warmup{
     error_message = "instance_warmup must be a non-negative integer."
   }
 }
+
+variable "acm_certificate_arn" {
+  description = "ARN of the ACM certificate for HTTPS listener."
+  type        = string
+
+  validation {
+    condition     = can(regex("^arn:aws:acm:[a-z0-9-]+:[0-9]{12}:certificate/[0-9a-fA-F-]+$", var.acm_certificate_arn))
+    error_message = "The acm_certificate_arn must be a valid ACM certificate ARN."
+  }
+}
+

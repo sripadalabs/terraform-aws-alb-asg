@@ -1,3 +1,27 @@
+resource "aws_security_group" "app" {
+  name   = "${var.app_name}-app-sg"
+  vpc_id = var.vpc_id
+
+  ingress {
+    description     = "Application traffic from ALB"
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.app_name}-app-sg"
+  }
+}
+
 resource "aws_launch_template" "custom_app" {
   name_prefix   = "${var.app_name}-"
   image_id      = var.ami_id
@@ -34,7 +58,7 @@ resource "aws_launch_template" "custom_app" {
 
   network_interfaces {
     associate_public_ip_address = false
-    security_groups             = [aws_security_group.custom_app_sg.id]
+    security_groups             = [aws_security_group.app.id]
   }
   
   # this is for instance tags, which are different from ASG tags. 
@@ -127,6 +151,21 @@ resource "aws_autoscaling_policy" "cpu_target_tracking" {
     target_value     = 70
     disable_scale_in = false
   }
+}
+
+# this is lifecycle hooks, which can be used to perform actions when an instance 
+# is launched or terminated. 
+# For example, you can use a lifecycle hook to run a script on the instance before it is terminated, 
+# or to send a notification when an instance is launched.
+
+resource "aws_autoscaling_lifecycle_hook" "terminate" {
+  name                   = "instance-terminating"
+  autoscaling_group_name = aws_autoscaling_group.custom_app_asg.name
+
+  lifecycle_transition = "autoscaling:EC2_INSTANCE_TERMINATING"
+
+  heartbeat_timeout = 300
+  default_result    = "CONTINUE"
 }
 
 # Below is useful if you want to use a simple scaling policy instead of target tracking.
