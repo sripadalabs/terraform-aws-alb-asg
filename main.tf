@@ -102,7 +102,6 @@ resource aws_autoscaling_group "custom_app_asg" {
       instance_warmup        = 300
       min_healthy_percentage = 100
       max_healthy_percentage = 150
-
       auto_rollback = true
       skip_matching = true
     }
@@ -114,3 +113,49 @@ resource aws_autoscaling_group "custom_app_asg" {
     propagate_at_launch = true # This is important. It ensures that the tag is applied to the instances launched by the ASG.
   }
 }
+
+resource "aws_autoscaling_policy" "cpu_target_tracking" {
+  name                   = "${var.app_name}-cpu-target-tracking"
+  autoscaling_group_name = aws_autoscaling_group.custom_app_asg.name
+  policy_type            = "TargetTrackingScaling"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+
+    target_value     = 70
+    disable_scale_in = false
+  }
+}
+
+# Below is useful if you want to use a simple scaling policy instead of target tracking.
+# if you want scale up 
+
+# resource aws_autoscaling_policy "scale_up" {
+#   name                   = "${var.app_name}-scale-up"
+#   autoscaling_group_name = aws_autoscaling_group.custom_app_asg.name
+#   policy_type            = "SimpleScaling"
+#   adjustment_type        = "ChangeInCapacity"
+#   scaling_adjustment     = 1
+#   cooldown               = 300
+#   estimated_instance_warmup = 300
+# }
+
+# resource "aws_cloudwatch-metrics_alarm" "cpu_utilization_high" {
+#   alarm_name          = "${var.app_name}-cpu-utilization-high"
+#   alarm_description   = "This metric monitors EC2 CPU utilization and triggers scale-up policy when it exceeds the threshold."
+#   comparison_operator = "GreaterThanThreshold"
+#   evaluation_periods  = 2
+#   metric_name         = "CPUUtilization"
+#   namespace           = "AWS/EC2"
+#   period              = 300
+#   statistic           = "Average"
+#   threshold           = 70
+
+#   dimensions = {
+#     AutoScalingGroupName = aws_autoscaling_group.custom_app_asg.name
+#   }
+#   actions_enabled   = true
+#   alarm_actions     = [aws_autoscaling_policy.scale_up.arn]
+# }
