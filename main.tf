@@ -198,3 +198,15 @@ resource "aws_autoscaling_lifecycle_hook" "terminate" {
 #   actions_enabled   = true
 #   alarm_actions     = [aws_autoscaling_policy.scale_up.arn]
 # }
+
+resource "aws_autoscaling_notification" "asg_notifications" {
+  group_names = [aws_autoscaling_group.custom_app_asg.name]
+  notifications = [
+    "autoscaling:EC2_INSTANCE_LAUNCH",
+    "autoscaling:EC2_INSTANCE_TERMINATE",
+    "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+    "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"
+  ]
+  topic_arn = var.sns_topic_arn
+}
+

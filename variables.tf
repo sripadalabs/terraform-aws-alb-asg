@@ -159,3 +159,13 @@ variable "acm_certificate_arn" {
   }
 }
 
+variable "sns_topic_arn" {
+  description = "ARN of the SNS topic for Auto Scaling notifications."
+  type        = string
+
+  validation {
+    condition     = can(regex("^arn:aws:sns:[a-z0-9-]+:[0-9]{12}:[a-zA-Z0-9-_]+$", var.sns_topic_arn))
+    error_message = "The sns_topic_arn must be a valid SNS topic ARN."
+  }
+}
+
